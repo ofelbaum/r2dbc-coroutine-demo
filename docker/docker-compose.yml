@@ -1,0 +1,65 @@
+version: '3.7'
+
+services:
+
+  postgres:
+    image: 'postgres:15.2'
+    container_name: postgres-local-r2dbc-demo
+    ports:
+      - "5432:5432"
+    expose:
+      - "5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+
+  collector:
+    image: jaegertracing/all-in-one:latest
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: 9411
+    ports:
+      - 16686:16686
+      - 4317:4317
+      - 4318:4318
+      - 9411:9411
+    expose:
+      - 16686
+      - 4317
+      - 4318
+      - 9411
+
+  spring-boot-app:
+    image: r2dbc-coroutine-demo:0.0.1-SNAPSHOT
+    environment:
+      JAVA_OPTS: -javaagent:/opt/agent/opentelemetry-javaagent-2.2.0.jar
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/postgres
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://collector:4317
+      OTEL_EXPORTER_OTLP_TRACES_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: none
+      OTEL_METRICS_EXPORTER: none
+      OTEL_SERVICE_NAME: r2dbc-coroutine-demo
+      THC_PATH: /actuator/health
+      THC_PORT: 8080
+    volumes:
+      - ../javaagent:/opt/agent
+    depends_on:
+      - postgres
+      - collector
+    expose:
+      - "8080"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: [ "CMD", "health-check" ]
+      start_period: 30s
+      interval: 5s
+      retries: 10
+
+  traces-creator:
+    image: curlimages/curl
+    command: curl http://spring-boot-app:8080/v1/addresses
+    depends_on:
+      spring-boot-app:
+        condition: service_healthy
