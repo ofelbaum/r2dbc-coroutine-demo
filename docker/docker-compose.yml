@@ -32,7 +32,7 @@ services:
   spring-boot-app:
     image: r2dbc-coroutine-demo:0.0.1-SNAPSHOT
     environment:
-      JAVA_OPTS: -javaagent:/opt/agent/opentelemetry-javaagent-2.2.0.jar
+      JAVA_OPTS: -javaagent:/opt/agent/opentelemetry-javaagent-2.4.0.jar
       SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/postgres
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://collector:4317
       OTEL_EXPORTER_OTLP_TRACES_PROTOCOL: grpc
